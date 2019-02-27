@@ -145,20 +145,6 @@ DWORD WinDbgMon::Initialize()
             return GetLastError();
         }
 
-        // set monitor thread's priority to highest
-        // ---------------------------------------------------------
-        /*
-        bSuccessful = ::SetPriorityClass(
-            ::GetCurrentProcess(),
-            REALTIME_PRIORITY_CLASS
-        );
-
-        bSuccessful = ::SetThreadPriority(
-            m_hMonitorThread,
-            THREAD_PRIORITY_TIME_CRITICAL
-        );
-        */
-
         return 0;
     }
 }
