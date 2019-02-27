@@ -3,8 +3,7 @@
 #include <iostream>
 #include <iomanip>
 #include <ctime>
-#include <atlbase.h>
-#include <atlstr.h>
+#include <tchar.h>
 
 // ----------------------------------------------------------------------------
 //  PROPERTIES OF OBJECTS
@@ -33,28 +32,24 @@ DWORD WinDbgMon::Initialize()
         return 0;
     }
     else {
-        DWORD errorCode = 0;
-        BOOL bSuccessful = FALSE;
-
         SetLastError(0);
 
         // Mutex: DBWin
         // ---------------------------------------------------------
-        CComBSTR DBWinMutex = L"DBWinMutex";
+        auto DBWIN_MUTEX = _T("DBWinMutex");
         m_hDBWinMutex = ::OpenMutex(
-            MUTEX_ALL_ACCESS,
+            SYNCHRONIZE,
             FALSE,
-            DBWinMutex
+            DBWIN_MUTEX
         );
 
         if (m_hDBWinMutex == NULL) {
-            errorCode = GetLastError();
-            return errorCode;
+            return GetLastError();
         }
 
         // Event: buffer ready
         // ---------------------------------------------------------
-        CComBSTR DBWIN_BUFFER_READY = L"DBWIN_BUFFER_READY";
+        auto DBWIN_BUFFER_READY = _T("DBWIN_BUFFER_READY");
         m_hEventBufferReady = ::OpenEvent(
             EVENT_ALL_ACCESS,
             FALSE,
@@ -70,14 +65,13 @@ DWORD WinDbgMon::Initialize()
             );
 
             if (m_hEventBufferReady == NULL) {
-                errorCode = GetLastError();
-                return errorCode;
+                return GetLastError();
             }
         }
 
         // Event: data ready
         // ---------------------------------------------------------
-        CComBSTR DBWIN_DATA_READY = L"DBWIN_DATA_READY";
+        auto DBWIN_DATA_READY = _T("DBWIN_DATA_READY");
         m_hEventDataReady = ::OpenEvent(
             SYNCHRONIZE,
             FALSE,
@@ -93,14 +87,13 @@ DWORD WinDbgMon::Initialize()
             );
 
             if (m_hEventDataReady == NULL) {
-                errorCode = GetLastError();
-                return errorCode;
+                return GetLastError();
             }
         }
 
         // Shared memory
         // ---------------------------------------------------------
-        CComBSTR DBWIN_BUFFER = L"DBWIN_BUFFER";
+        auto DBWIN_BUFFER = _T("DBWIN_BUFFER");
         m_hDBMonBuffer = ::OpenFileMapping(
             FILE_MAP_READ,
             FALSE,
@@ -118,8 +111,7 @@ DWORD WinDbgMon::Initialize()
             );
 
             if (m_hDBMonBuffer == NULL) {
-                errorCode = GetLastError();
-                return errorCode;
+                return GetLastError();
             }
         }
 
@@ -132,8 +124,7 @@ DWORD WinDbgMon::Initialize()
         );
 
         if (m_pDBBuffer == NULL) {
-            errorCode = GetLastError();
-            return errorCode;
+            return GetLastError();
         }
 
         // Monitoring thread
@@ -151,12 +142,12 @@ DWORD WinDbgMon::Initialize()
 
         if (m_hMonitorThread == NULL) {
             m_bWinDebugMonStopped = TRUE;
-            errorCode = GetLastError();
-            return errorCode;
+            return GetLastError();
         }
 
         // set monitor thread's priority to highest
         // ---------------------------------------------------------
+        /*
         bSuccessful = ::SetPriorityClass(
             ::GetCurrentProcess(),
             REALTIME_PRIORITY_CLASS
@@ -166,8 +157,9 @@ DWORD WinDbgMon::Initialize()
             m_hMonitorThread,
             THREAD_PRIORITY_TIME_CRITICAL
         );
+        */
 
-        return errorCode;
+        return 0;
     }
 }
 

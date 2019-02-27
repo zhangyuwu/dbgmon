@@ -7,6 +7,8 @@
 #include <conio.h>
 #include "WinDbgMon.h"
 
+using namespace std;
+
 WinDbgMon dbgmon;
 
 void on_user_break(int)
@@ -31,18 +33,23 @@ int main()
         signal(signum, on_user_break);
     }
 
-    dbgmon.Initialize();
-    dbgmon.Wait();
+    auto err = dbgmon.Initialize();
+    if (err != 0) {
+        void *msgbuf;
+        int count = FormatMessage(
+            FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+            NULL,
+            err,
+            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+            (LPTSTR)&msgbuf,
+            0,
+            NULL
+        );
+        cout << "Faied to initialize: " << (TCHAR *)msgbuf << endl;
+    }
+    else {
+        cout << "Debug monitor is started, press CTRL+C to quit." << endl;
+        dbgmon.Wait();
+    }
     return 0;
 }
-
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
