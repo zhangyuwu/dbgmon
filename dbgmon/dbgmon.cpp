@@ -14,7 +14,7 @@ WinDbgMon dbgmon;
 void on_user_break(int)
 {
     std::cout << "User Break" << std::endl;
-    dbgmon.Unintialize();
+    dbgmon.Stop();
 }
 
 int main()
@@ -33,7 +33,7 @@ int main()
         signal(signum, on_user_break);
     }
 
-    auto err = dbgmon.Initialize();
+    auto err = dbgmon.Start();
     if (err != 0) {
         void *msgbuf;
         int count = FormatMessage(

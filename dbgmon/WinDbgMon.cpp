@@ -23,10 +23,10 @@ WinDbgMon::WinDbgMon(Callback onDebugMessage)
 
 WinDbgMon::~WinDbgMon()
 {
-    Unintialize();
+    Stop();
 }
 
-DWORD WinDbgMon::Initialize()
+DWORD WinDbgMon::Start()
 {
     if (m_hDBWinMutex != NULL) {
         return 0;
@@ -149,7 +149,7 @@ DWORD WinDbgMon::Initialize()
     }
 }
 
-void WinDbgMon::Unintialize()
+void WinDbgMon::Stop()
 {
     if (m_hMonitorThread != NULL) {
         m_bWinDebugMonStopped = TRUE;
@@ -196,7 +196,10 @@ DWORD WinDbgMon::ProcessData()
             std::time_t t = std::time(nullptr);
             std::tm tm;
             localtime_s(&tm, &t);
-            std::cout << "[" << std::put_time(&tm, "%Y-%m-%d %T") << "] " << m_pDBBuffer->dwProcessId << ": " << m_pDBBuffer->data << std::endl;
+            if (this->OutputTimestampEnabled) {
+                std::cout << "[" << std::put_time(&tm, "%Y-%m-%d %T") << "] ";
+            }
+            std::cout << m_pDBBuffer->dwProcessId << ": " << m_pDBBuffer->data << std::endl;
         }
 
         // signal buffer ready

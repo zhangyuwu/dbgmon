@@ -27,8 +27,8 @@ private:
     HANDLE m_hEventDataReady = NULL;
 
     HANDLE m_hMonitorThread = NULL;
-    BOOL m_bWinDebugMonStopped;
-    struct dbwin_buffer_t *m_pDBBuffer;
+    BOOL m_bWinDebugMonStopped = true;
+    struct dbwin_buffer_t *m_pDBBuffer = NULL;
     Callback OnDebugMessage;
 
 private:
@@ -38,9 +38,12 @@ private:
 public:
     WinDbgMon(Callback onDebugMessage = NULL);
     ~WinDbgMon();
-    DWORD Initialize();
-    void Unintialize();
+    DWORD Start();
+    void Stop();
     void Wait();
+
+public:
+    bool OutputTimestampEnabled = false;
 };
 
 #endif
