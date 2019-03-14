@@ -151,11 +151,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="resource.h" />
     <ClInclude Include="WinDbgMon.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dbgmon.cpp" />
     <ClCompile Include="WinDbgMon.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="dbgmon.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="app.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
