@@ -151,11 +151,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="LogDbg.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="WinDbgMon.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dbgmon.cpp" />
+    <ClCompile Include="LogDbg.cpp" />
     <ClCompile Include="WinDbgMon.cpp" />
   </ItemGroup>
   <ItemGroup>

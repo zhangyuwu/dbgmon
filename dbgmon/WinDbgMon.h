@@ -41,9 +41,6 @@ public:
     DWORD Start();
     void Stop();
     void Wait();
-
-public:
-    bool OutputTimestampEnabled = false;
 };
 
 #endif

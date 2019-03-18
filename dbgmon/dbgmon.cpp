@@ -5,6 +5,7 @@
 #include <iostream>
 #include <signal.h>
 #include <conio.h>
+#include <tchar.h>
 #include "WinDbgMon.h"
 
 using namespace std;
@@ -19,6 +20,10 @@ void on_user_break(int)
 
 int main()
 {
+    TCHAR title[256];
+    ::GetConsoleTitle(title, sizeof(title) / sizeof(TCHAR));
+    ::SetConsoleTitle(_T("Windows Debug Monitor"));
+
     std::vector<int> signals = {
         SIGINT,
         SIGILL,
@@ -51,5 +56,7 @@ int main()
         cout << "Debug monitor is started, press CTRL+C to quit." << endl;
         dbgmon.Wait();
     }
+
+    ::SetConsoleTitle(title);
     return 0;
 }

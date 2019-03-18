@@ -1,9 +1,10 @@
-#include "WinDbgMon.h"
 #include <exception>
 #include <iostream>
 #include <iomanip>
 #include <ctime>
 #include <tchar.h>
+#include "WinDbgMon.h"
+#include "LogDbg.h"
 
 // ----------------------------------------------------------------------------
 //  PROPERTIES OF OBJECTS
@@ -193,13 +194,7 @@ DWORD WinDbgMon::ProcessData()
             OnDebugMessage(m_pDBBuffer->dwProcessId, m_pDBBuffer->data);
         }
         else {
-            std::time_t t = std::time(nullptr);
-            std::tm tm;
-            localtime_s(&tm, &t);
-            if (this->OutputTimestampEnabled) {
-                std::cout << "[" << std::put_time(&tm, "%Y-%m-%d %T") << "] ";
-            }
-            std::cout << m_pDBBuffer->dwProcessId << ": " << m_pDBBuffer->data << std::endl;
+            LogDbg::kprintf("%d: %s", m_pDBBuffer->dwProcessId, m_pDBBuffer->data);
         }
 
         // signal buffer ready
