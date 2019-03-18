@@ -6,8 +6,10 @@
 
 class LogDbg
 {
-public:
+private:
     static std::string timestamp();
+
+public:
     static void output(const char *str);
     static void kprintf(const char * fmt, ...);
 };
