@@ -19,11 +19,14 @@ std::string LogDbg::timestamp()
 
 void LogDbg::output(const char * str)
 {
-    std::ostringstream oss;
-    oss << "[" << timestamp() << "] " << str;
-    std::cout << oss.str();
-    if (oss.str().back() != '\n') {
-        std::cout << std::endl;
+    if (str != NULL) {
+        std::ostringstream oss;
+        oss << "[" << timestamp() << "] " << str;
+        auto len = strlen(str);
+        if (len > 0 && str[len - 1] != '\n') {
+            oss << std::endl;
+        }
+        std::cout << oss.str();
     }
 }
 
