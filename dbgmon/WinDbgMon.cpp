@@ -1,5 +1,6 @@
 #include <exception>
 #include <iostream>
+#include <sstream>
 #include <iomanip>
 #include <ctime>
 #include <tchar.h>
@@ -194,7 +195,9 @@ DWORD WinDbgMon::ProcessData()
             OnDebugMessage(m_pDBBuffer->dwProcessId, m_pDBBuffer->data);
         }
         else {
-            LogDbg::kprintf("%d: %s", m_pDBBuffer->dwProcessId, m_pDBBuffer->data);
+            std::ostringstream oss;
+            oss << m_pDBBuffer->dwProcessId << ": " << m_pDBBuffer->data;
+            m_logDbg.output(oss.str());
         }
 
         // signal buffer ready

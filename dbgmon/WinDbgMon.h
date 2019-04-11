@@ -3,6 +3,7 @@
 
 #include <windows.h>
 #include <functional>
+#include "LogDbg.h"
 
 class WinDbgMon
 {
@@ -30,6 +31,8 @@ private:
     BOOL m_bWinDebugMonStopped = true;
     struct dbwin_buffer_t *m_pDBBuffer = NULL;
     Callback OnDebugMessage;
+
+    LogDbg m_logDbg;
 
 private:
     DWORD ProcessData();
