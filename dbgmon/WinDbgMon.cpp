@@ -5,7 +5,6 @@
 #include <ctime>
 #include <tchar.h>
 #include "WinDbgMon.h"
-#include "LogDbg.h"
 
 // ----------------------------------------------------------------------------
 //  PROPERTIES OF OBJECTS
@@ -129,20 +128,23 @@ DWORD WinDbgMon::Start()
             return GetLastError();
         }
 
-        // Monitoring thread
+        // Start threads
         // ---------------------------------------------------------
         m_bWinDebugMonStopped = FALSE;
 
-        m_hMonitorThread = ::CreateThread(
-            NULL,
-            0,
-            MonitorThread,
-            this,
-            0,
-            NULL
-        );
+        // 1) start monitoring thread
+        // ---------------------------------------------------------
+        m_hMonitorThread = ::CreateThread(NULL, 0, MonitorThread, this, 0, NULL);
 
         if (m_hMonitorThread == NULL) {
+            m_bWinDebugMonStopped = TRUE;
+            return GetLastError();
+        }
+
+        // 2) start logging thread
+        // ---------------------------------------------------------
+        m_hLoggingThread = ::CreateThread(NULL, 0, LoggingThread, this, 0, NULL);
+        if (m_hLoggingThread == NULL) {
             m_bWinDebugMonStopped = TRUE;
             return GetLastError();
         }
@@ -157,6 +159,12 @@ void WinDbgMon::Stop()
         m_bWinDebugMonStopped = TRUE;
         ::WaitForSingleObject(m_hMonitorThread, INFINITE);
         m_hMonitorThread = NULL;
+    }
+
+    if (m_hLoggingThread != NULL) {
+        m_bWinDebugMonStopped = TRUE;
+        ::WaitForSingleObject(m_hLoggingThread, INFINITE);
+        m_hLoggingThread = NULL;
     }
 
     if (m_hDBWinMutex != NULL) {
@@ -185,10 +193,8 @@ void WinDbgMon::Stop()
 
 DWORD WinDbgMon::ProcessData()
 {
-    DWORD ret = 0;
-
     // wait for data ready
-    ret = ::WaitForSingleObject(m_hEventDataReady, TIMEOUT_WIN_DEBUG);
+    DWORD ret = ::WaitForSingleObject(m_hEventDataReady, TIMEOUT_WIN_DEBUG);
 
     if (ret == WAIT_OBJECT_0) {
         if (OnDebugMessage != NULL) {
@@ -197,7 +203,7 @@ DWORD WinDbgMon::ProcessData()
         else {
             std::ostringstream oss;
             oss << m_pDBBuffer->dwProcessId << ": " << m_pDBBuffer->data;
-            m_logDbg.output(oss.str());
+            _output_queue.push(oss.str());
         }
 
         // signal buffer ready
@@ -216,11 +222,46 @@ DWORD WINAPI WinDbgMon::MonitorThread(void *pData)
             _this->ProcessData();
         }
     }
+    return 0;
+}
 
+DWORD WINAPI WinDbgMon::LoggingThread(void * pData)
+{
+    WinDbgMon *_this = (WinDbgMon *)pData;
+    std::string s;
+
+    while (!_this->m_bWinDebugMonStopped) {
+        if (_this->_output_queue.try_pop(s)) {
+            _this->OutputString(s);
+        }
+        else {
+            ::Sleep(10);
+        }
+    }
     return 0;
 }
 
 void WinDbgMon::Wait()
 {
     ::WaitForSingleObject(m_hMonitorThread, INFINITE);
+    ::WaitForSingleObject(m_hLoggingThread, INFINITE);
+}
+
+void WinDbgMon::OutputString(const std::string &str)
+{
+    auto timestamp = []() {
+        char buffer[64];
+        time_t t = time(NULL);
+        tm tm;
+        localtime_s(&tm, &t);
+        strftime(buffer, sizeof(buffer) / sizeof(char), "%Y-%m-%d %T", &tm);
+        return std::string(buffer);
+    };
+
+    std::ostringstream oss;
+    oss << "[" << timestamp() << "] " << str;
+    if (str.length() > 0 && str.back() != '\n') {
+        oss << std::endl;
+    }
+    std::cout << oss.str();
 }

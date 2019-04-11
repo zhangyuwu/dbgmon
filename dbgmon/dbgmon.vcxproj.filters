@@ -21,18 +21,12 @@
     <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="LogDbg.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dbgmon.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="WinDbgMon.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="LogDbg.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

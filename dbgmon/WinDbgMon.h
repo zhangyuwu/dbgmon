@@ -3,7 +3,7 @@
 
 #include <windows.h>
 #include <functional>
-#include "LogDbg.h"
+#include <concurrent_queue.h>
 
 class WinDbgMon
 {
@@ -28,15 +28,17 @@ private:
     HANDLE m_hEventDataReady = NULL;
 
     HANDLE m_hMonitorThread = NULL;
+    HANDLE m_hLoggingThread = NULL;
     BOOL m_bWinDebugMonStopped = true;
     struct dbwin_buffer_t *m_pDBBuffer = NULL;
     Callback OnDebugMessage;
-
-    LogDbg m_logDbg;
+    concurrency::concurrent_queue<std::string> _output_queue;
 
 private:
     DWORD ProcessData();
     static DWORD WINAPI MonitorThread(void *pData);
+    static DWORD WINAPI LoggingThread(void *pData);
+    void OutputString(const std::string &str);
 
 public:
     WinDbgMon(Callback onDebugMessage = NULL);
