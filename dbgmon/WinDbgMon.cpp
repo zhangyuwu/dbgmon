@@ -9,12 +9,12 @@
 // ----------------------------------------------------------------------------
 //  PROPERTIES OF OBJECTS
 // ----------------------------------------------------------------------------
-//	NAME		|	DBWinMutex		DBWIN_BUFFER_READY		DBWIN_DATA_READY
+//  NAME        |   DBWinMutex      DBWIN_BUFFER_READY      DBWIN_DATA_READY
 // ----------------------------------------------------------------------------
-//	TYPE		|	Mutex			Event					Event
-//	ACCESS		|	All				All						Sync
-//	INIT STATE	|	?				Signaled				Nonsignaled
-//	PROPERTY	|	?				Auto-Reset				Auto-Reset
+//  TYPE        |   Mutex           Event                   Event
+//  ACCESS      |   All             All                     Sync
+//  INIT STATE  |   ?               Signaled                Nonsignaled
+//  PROPERTY    |   ?               Auto-Reset              Auto-Reset
 // ----------------------------------------------------------------------------
 
 WinDbgMon::WinDbgMon(Callback onDebugMessage)
@@ -27,80 +27,55 @@ WinDbgMon::~WinDbgMon()
     Stop();
 }
 
+bool WinDbgMon::IsRunning()
+{
+    return m_bRunning;
+}
+
 DWORD WinDbgMon::Start()
 {
-    if (m_hDBWinMutex != NULL) {
-        return 0;
-    }
-    else {
-        SetLastError(0);
-
+    if (m_hDBWinMutex == NULL) {
         // Mutex: DBWin
-        // ---------------------------------------------------------
         auto DBWIN_MUTEX = _T("DBWinMutex");
-        m_hDBWinMutex = ::OpenMutex(
-            SYNCHRONIZE,
-            FALSE,
-            DBWIN_MUTEX
-        );
-
+        m_hDBWinMutex = ::OpenMutex(SYNCHRONIZE, FALSE, DBWIN_MUTEX);
         if (m_hDBWinMutex == NULL) {
-            return GetLastError();
+            return -1;
         }
 
         // Event: buffer ready
-        // ---------------------------------------------------------
         auto DBWIN_BUFFER_READY = _T("DBWIN_BUFFER_READY");
-        m_hEventBufferReady = ::OpenEvent(
-            EVENT_ALL_ACCESS,
-            FALSE,
-            DBWIN_BUFFER_READY
-        );
-
+        m_hEventBufferReady = ::OpenEvent(EVENT_ALL_ACCESS, FALSE, DBWIN_BUFFER_READY);
         if (m_hEventBufferReady == NULL) {
             m_hEventBufferReady = ::CreateEvent(
                 NULL,
-                FALSE,	// auto-reset
-                TRUE,	// initial state: signaled
+                FALSE,  // auto-reset
+                TRUE,   // initial state: signaled
                 DBWIN_BUFFER_READY
             );
-
             if (m_hEventBufferReady == NULL) {
-                return GetLastError();
+                return -2;
             }
         }
 
         // Event: data ready
-        // ---------------------------------------------------------
         auto DBWIN_DATA_READY = _T("DBWIN_DATA_READY");
-        m_hEventDataReady = ::OpenEvent(
-            SYNCHRONIZE,
-            FALSE,
-            DBWIN_DATA_READY
-        );
-
+        m_hEventDataReady = ::OpenEvent(SYNCHRONIZE, FALSE, DBWIN_DATA_READY);
         if (m_hEventDataReady == NULL) {
             m_hEventDataReady = ::CreateEvent(
                 NULL,
-                FALSE,	// auto-reset
-                FALSE,	// initial state: nonsignaled
+                FALSE,  // auto-reset
+                FALSE,  // initial state: nonsignaled
                 DBWIN_DATA_READY
             );
-
             if (m_hEventDataReady == NULL) {
-                return GetLastError();
+                return -3;
             }
         }
 
         // Shared memory
         // ---------------------------------------------------------
         auto DBWIN_BUFFER = _T("DBWIN_BUFFER");
-        m_hDBMonBuffer = ::OpenFileMapping(
-            FILE_MAP_READ,
-            FALSE,
-            DBWIN_BUFFER
-        );
-
+        m_hDBMonBuffer = ::OpenFileMapping(FILE_MAP_READ, FALSE, DBWIN_BUFFER);
         if (m_hDBMonBuffer == NULL) {
             m_hDBMonBuffer = ::CreateFileMapping(
                 INVALID_HANDLE_VALUE,
@@ -110,93 +85,63 @@ DWORD WinDbgMon::Start()
                 sizeof(struct dbwin_buffer_t),
                 DBWIN_BUFFER
             );
-
             if (m_hDBMonBuffer == NULL) {
-                return GetLastError();
+                return -4;
             }
         }
 
-        m_pDBBuffer = (struct dbwin_buffer_t *)::MapViewOfFile(
-            m_hDBMonBuffer,
-            SECTION_MAP_READ,
-            0,
-            0,
-            0
-        );
-
+        m_pDBBuffer = (struct dbwin_buffer_t *)::MapViewOfFile(m_hDBMonBuffer, SECTION_MAP_READ, 0, 0, 0);
         if (m_pDBBuffer == NULL) {
-            return GetLastError();
+            return -5;
         }
 
         // Start threads
-        // ---------------------------------------------------------
-        m_bWinDebugMonStopped = FALSE;
+        m_bRunning = TRUE;
 
         // 1) start monitoring thread
-        // ---------------------------------------------------------
         m_hMonitorThread = ::CreateThread(NULL, 0, MonitorThread, this, 0, NULL);
-
         if (m_hMonitorThread == NULL) {
-            m_bWinDebugMonStopped = TRUE;
-            return GetLastError();
+            return -6;
         }
 
         // 2) start logging thread
         // ---------------------------------------------------------
         m_hLoggingThread = ::CreateThread(NULL, 0, LoggingThread, this, 0, NULL);
         if (m_hLoggingThread == NULL) {
-            m_bWinDebugMonStopped = TRUE;
-            return GetLastError();
+            return -7;
         }
 
-        return 0;
+        // prompt for cancelation
+        ::OutputDebugString(_T("Debug monitor is started."));
+        ::OutputDebugString(_T("press CTRL + C to quit."));
+        ::OutputDebugString(_T("press CTRL + X to clear."));
     }
+    return 0;
 }
 
 void WinDbgMon::Stop()
 {
-    if (m_hMonitorThread != NULL) {
-        m_bWinDebugMonStopped = TRUE;
-        ::WaitForSingleObject(m_hMonitorThread, INFINITE);
-        m_hMonitorThread = NULL;
-    }
+    if (this->m_bRunning) {
+        m_bRunning = FALSE;
 
-    if (m_hLoggingThread != NULL) {
-        m_bWinDebugMonStopped = TRUE;
-        ::WaitForSingleObject(m_hLoggingThread, INFINITE);
-        m_hLoggingThread = NULL;
-    }
+        // wait for termination of threads
+        HANDLE threads[] = { m_hMonitorThread, m_hLoggingThread };
+        ::WaitForMultipleObjects(sizeof(threads) / sizeof(HANDLE), threads, TRUE, INFINITE);
 
-    if (m_hDBWinMutex != NULL) {
+        // shutdown
+        ::UnmapViewOfFile(m_pDBBuffer);
+        CloseHandle(m_hDBMonBuffer);
+        CloseHandle(m_hEventBufferReady);
+        CloseHandle(m_hEventDataReady);
         CloseHandle(m_hDBWinMutex);
         m_hDBWinMutex = NULL;
     }
-
-    if (m_hDBMonBuffer != NULL) {
-        ::UnmapViewOfFile(m_pDBBuffer);
-        CloseHandle(m_hDBMonBuffer);
-        m_hDBMonBuffer = NULL;
-    }
-
-    if (m_hEventBufferReady != NULL) {
-        CloseHandle(m_hEventBufferReady);
-        m_hEventBufferReady = NULL;
-    }
-
-    if (m_hEventDataReady != NULL) {
-        CloseHandle(m_hEventDataReady);
-        m_hEventDataReady = NULL;
-    }
-
-    m_pDBBuffer = NULL;
 }
 
-DWORD WinDbgMon::ProcessData()
+void WinDbgMon::ProcessData()
 {
     // wait for data ready
-    DWORD ret = ::WaitForSingleObject(m_hEventDataReady, TIMEOUT_WIN_DEBUG);
-
-    if (ret == WAIT_OBJECT_0) {
+    if (::WaitForSingleObject(m_hEventDataReady, TIMEOUT_WIN_DEBUG) == WAIT_OBJECT_0) {
         if (OnDebugMessage != NULL) {
             OnDebugMessage(m_pDBBuffer->dwProcessId, m_pDBBuffer->data);
         }
@@ -205,20 +150,16 @@ DWORD WinDbgMon::ProcessData()
             oss << m_pDBBuffer->dwProcessId << ": " << m_pDBBuffer->data;
             _output_queue.push(oss.str());
         }
-
         // signal buffer ready
         SetEvent(m_hEventBufferReady);
     }
-
-    return ret;
 }
 
 DWORD WINAPI WinDbgMon::MonitorThread(void *pData)
 {
     WinDbgMon *_this = (WinDbgMon *)pData;
-
     if (_this != NULL) {
-        while (!_this->m_bWinDebugMonStopped) {
+        while (_this->m_bRunning) {
             _this->ProcessData();
         }
     }
@@ -230,7 +171,7 @@ DWORD WINAPI WinDbgMon::LoggingThread(void * pData)
     WinDbgMon *_this = (WinDbgMon *)pData;
     std::string s;
 
-    while (!_this->m_bWinDebugMonStopped) {
+    while (_this->m_bRunning) {
         if (_this->_output_queue.try_pop(s)) {
             _this->OutputString(s);
         }
@@ -239,12 +180,6 @@ DWORD WINAPI WinDbgMon::LoggingThread(void * pData)
         }
     }
     return 0;
-}
-
-void WinDbgMon::Wait()
-{
-    ::WaitForSingleObject(m_hMonitorThread, INFINITE);
-    ::WaitForSingleObject(m_hLoggingThread, INFINITE);
 }
 
 void WinDbgMon::OutputString(const std::string &str)
