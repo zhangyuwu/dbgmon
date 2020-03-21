@@ -5,6 +5,7 @@
 #include <ctime>
 #include <tchar.h>
 #include "WinDbgMon.h"
+#include "console.h"
 
 // ----------------------------------------------------------------------------
 //  PROPERTIES OF OBJECTS
@@ -112,7 +113,7 @@ DWORD WinDbgMon::Start()
         }
 
         // prompt for cancelation
-        ::OutputDebugString(_T("Debug monitor is started."));
+        ::OutputDebugString(_T("Windows Debug Monitor is started."));
         ::OutputDebugString(_T("press CTRL + C to quit."));
         ::OutputDebugString(_T("press CTRL + X to clear."));
     }
@@ -189,14 +190,15 @@ void WinDbgMon::OutputString(const std::string &str)
         time_t t = time(NULL);
         tm tm;
         localtime_s(&tm, &t);
-        strftime(buffer, sizeof(buffer) / sizeof(char), "%Y-%m-%d %T", &tm);
+        strftime(buffer, sizeof(buffer) / sizeof(char), "[%Y-%m-%d %T] ", &tm);
         return std::string(buffer);
     };
 
-    std::ostringstream oss;
-    oss << "[" << timestamp() << "] " << str;
+    Console::set_foreground(Console::DarkGreen);
+    std::cout << timestamp();
+    Console::set_foreground(Console::Gray);
+    std::cout << str;
     if (str.length() > 0 && str.back() != '\n') {
-        oss << std::endl;
+        std::cout << std::endl;
     }
-    std::cout << oss.str();
 }

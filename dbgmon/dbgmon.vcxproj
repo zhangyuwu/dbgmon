@@ -151,10 +151,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="console.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="WinDbgMon.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="console.cpp" />
     <ClCompile Include="dbgmon.cpp" />
     <ClCompile Include="WinDbgMon.cpp" />
   </ItemGroup>
