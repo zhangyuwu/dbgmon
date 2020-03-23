@@ -31,12 +31,12 @@ private:
     BOOL m_bRunning = true;
     struct dbwin_buffer_t *m_pDBBuffer = NULL;
     Callback OnDebugMessage;
-    concurrency::concurrent_queue<dbwin_buffer_t> _output_queue;
+    concurrency::concurrent_queue<dbwin_buffer_t *> _output_queue;
 
 private:
     static DWORD WINAPI MonitorThread(void *pData);
     static DWORD WINAPI LoggingThread(void *pData);
-    void OutputString(int pid, const std::string &str);
+    void OutputBuffer(dbwin_buffer_t *buf);
     void ProcessData();
 
 public:

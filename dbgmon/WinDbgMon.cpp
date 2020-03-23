@@ -147,9 +147,10 @@ void WinDbgMon::ProcessData()
             OnDebugMessage(m_pDBBuffer->dwProcessId, m_pDBBuffer->data);
         }
         else {
-            dbwin_buffer_t buf;
-            memcpy(&buf, m_pDBBuffer, sizeof(buf));
-            _output_queue.push(buf);
+            if (dbwin_buffer_t *buf = new dbwin_buffer_t()) {
+                memcpy(buf, m_pDBBuffer, sizeof(dbwin_buffer_t));
+                _output_queue.push(buf);
+            }
         }
         // signal buffer ready
         SetEvent(m_hEventBufferReady);
@@ -170,10 +171,10 @@ DWORD WINAPI WinDbgMon::MonitorThread(void *pData)
 DWORD WINAPI WinDbgMon::LoggingThread(void * pData)
 {
     WinDbgMon *_this = (WinDbgMon *)pData;
-    dbwin_buffer_t buf;
+    dbwin_buffer_t *buf;
     while (_this->m_bRunning) {
         if (_this->_output_queue.try_pop(buf)) {
-            _this->OutputString(buf.dwProcessId, buf.data);
+            _this->OutputBuffer(buf);
         }
         else {
             ::Sleep(10);
@@ -182,7 +183,7 @@ DWORD WINAPI WinDbgMon::LoggingThread(void * pData)
     return 0;
 }
 
-void WinDbgMon::OutputString(int pid, const std::string &str)
+void WinDbgMon::OutputBuffer(dbwin_buffer_t *buf)
 {
     auto timestamp = []() {
         char buffer[64];
@@ -196,8 +197,10 @@ void WinDbgMon::OutputString(int pid, const std::string &str)
     Console::set_foreground(Console::DarkGreen);
     std::cout << timestamp();
     Console::set_foreground(Console::Gray);
-    std::cout << pid << ": " << str;
-    if (str.length() > 0 && str.back() != '\n') {
+    std::cout << buf->dwProcessId << ": " << buf->data;
+    auto len = strlen(buf->data);
+    if (len > 0 && buf->data[len-1] != '\n') {
         std::cout << std::endl;
     }
+    delete buf;
 }
