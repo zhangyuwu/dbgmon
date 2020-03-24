@@ -196,8 +196,10 @@ void WinDbgMon::OutputBuffer(dbwin_buffer_t *buf)
 
     Console::set_foreground(Console::DarkGreen);
     std::cout << timestamp();
+    Console::set_foreground(Console::Magenta);
+    std::cout << buf->dwProcessId;
     Console::set_foreground(Console::Gray);
-    std::cout << buf->dwProcessId << ": " << buf->data;
+    std::cout << ": " << buf->data;
     auto len = strlen(buf->data);
     if (len > 0 && buf->data[len-1] != '\n') {
         std::cout << std::endl;
